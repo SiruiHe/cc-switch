@@ -13,8 +13,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  signing-gate:
+    runs-on: ubuntu-22.04
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - name: Check signing secrets
+        id: check
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
-    if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+    if: ${{ needs.signing-gate.outputs.enabled == 'true' }}
+    needs: signing-gate
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -517,9 +535,11 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+    if: ${{ needs.signing-gate.outputs.enabled == 'true' }}
     runs-on: ubuntu-22.04
-    needs: release
+    needs:
+      - signing-gate
+      - release
     permissions:
       contents: write
     steps:
@@ -564,9 +584,11 @@ jobs:
 
   assemble-latest-json:
     name: Assemble latest.json
-    if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+    if: ${{ needs.signing-gate.outputs.enabled == 'true' }}
     runs-on: ubuntu-22.04
-    needs: publish-release
+    needs:
+      - signing-gate
+      - publish-release
     permissions:
       contents: write
     steps:

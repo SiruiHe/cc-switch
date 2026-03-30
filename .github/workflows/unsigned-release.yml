@@ -19,8 +19,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  signing-gate:
+    runs-on: ubuntu-22.04
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+      tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - name: Check signing secrets
+        id: check
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${GITHUB_REF_NAME:-}" ]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.tag }}" ]; then
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "No tag provided" >&2
+            exit 1
+          fi
+
   build:
-    if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY == '' }}
+    if: ${{ needs.signing-gate.outputs.enabled == 'true' }}
+    needs: signing-gate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -90,14 +122,14 @@ jobs:
             pnpm tauri build --bundles app || true
             APP_PATH="src-tauri/target/release/bundle/macos/CC Switch.app"
             if [ -d "$APP_PATH" ]; then
-              ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "release-assets/CC-Switch-${GITHUB_REF_NAME:-${{ inputs.tag }}}-macOS-unsigned.zip"
+              ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "release-assets/CC-Switch-${{ needs.signing-gate.outputs.tag }}-macOS-unsigned.zip"
             else
-              tar -czf "release-assets/CC-Switch-${GITHUB_REF_NAME:-${{ inputs.tag }}}-macOS-binary.tar.gz" -C src-tauri/target/release cc-switch
+              tar -czf "release-assets/CC-Switch-${{ needs.signing-gate.outputs.tag }}-macOS-binary.tar.gz" -C src-tauri/target/release cc-switch
             fi
           elif [ "$RUNNER_OS" = "Linux" ]; then
-            tar -czf "release-assets/CC-Switch-${GITHUB_REF_NAME:-${{ inputs.tag }}}-linux-x86_64-unsigned.tar.gz" -C src-tauri/target/release cc-switch
+            tar -czf "release-assets/CC-Switch-${{ needs.signing-gate.outputs.tag }}-linux-x86_64-unsigned.tar.gz" -C src-tauri/target/release cc-switch
           else
-            powershell -NoProfile -Command "Compress-Archive -Path 'src-tauri/target/release/cc-switch.exe' -DestinationPath 'release-assets/CC-Switch-${env:GITHUB_REF_NAME}-windows-x86_64-unsigned.zip' -Force"
+            powershell -NoProfile -Command "Compress-Archive -Path 'src-tauri/target/release/cc-switch.exe' -DestinationPath 'release-assets/CC-Switch-${{ needs.signing-gate.outputs.tag }}-windows-x86_64-unsigned.zip' -Force"
           fi
 
       - name: Upload release artifacts
@@ -108,23 +140,12 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY == '' }}
+    if: ${{ needs.signing-gate.outputs.enabled == 'true' }}
     runs-on: ubuntu-22.04
-    needs: build
+    needs:
+      - signing-gate
+      - build
     steps:
-      - name: Resolve tag
-        id: tag
-        shell: bash
-        run: |
-          if [ -n "${GITHUB_REF_NAME:-}" ]; then
-            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ inputs.tag }}" ]; then
-            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "No tag provided" >&2
-            exit 1
-          fi
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -135,8 +156,8 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.value }}
-          name: CC Switch ${{ steps.tag.outputs.value }} (unsigned)
+          tag_name: ${{ needs.signing-gate.outputs.tag }}
+          name: CC Switch ${{ needs.signing-gate.outputs.tag }} (unsigned)
           prerelease: true
           body: |
             Unsigned fork build.
