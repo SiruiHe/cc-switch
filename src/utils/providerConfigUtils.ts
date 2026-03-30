@@ -11,7 +11,7 @@ const isPlainObject = (value: unknown): value is Record<string, any> => {
 const CLAUDE_API_KEY_ENV_FIELDS = [
   "ANTHROPIC_AUTH_TOKEN",
   "ANTHROPIC_API_KEY",
-  "ANTHROPIC_FOUNDRY_AUTH_TOKEN",
+  "ANTHROPIC_FOUNDRY_API_KEY",
   "AWS_BEARER_TOKEN_BEDROCK",
 ] as const;
 
@@ -286,16 +286,18 @@ export const setClaudeBaseUrlInConfig = (
     const env = config.env as Record<string, any>;
     const isFoundry =
       env.CLAUDE_CODE_USE_FOUNDRY === "1" ||
-      "ANTHROPIC_FOUNDRY_BASE_URL" in env ||
-      "ANTHROPIC_FOUNDRY_RESOURCE" in env;
+      "ANTHROPIC_FOUNDRY_RESOURCE" in env ||
+      "ANTHROPIC_FOUNDRY_API_KEY" in env;
 
     if (isFoundry) {
-      env.ANTHROPIC_FOUNDRY_BASE_URL = sanitized;
       const match = sanitized.match(
         /^https:\/\/([^.]+)\.services\.ai\.azure\.com\/anthropic\/?$/i,
       );
       if (match?.[1]) {
         env.ANTHROPIC_FOUNDRY_RESOURCE = match[1];
+        delete env.ANTHROPIC_FOUNDRY_BASE_URL;
+      } else {
+        env.ANTHROPIC_FOUNDRY_BASE_URL = sanitized;
       }
     } else if ("BEDROCK_BASE_URL" in env) {
       env.BEDROCK_BASE_URL = sanitized;

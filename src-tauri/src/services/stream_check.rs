@@ -109,7 +109,7 @@ impl StreamCheckService {
 
         if has_foundry_flag
             || env.contains_key("ANTHROPIC_FOUNDRY_RESOURCE")
-            || env.contains_key("ANTHROPIC_FOUNDRY_AUTH_TOKEN")
+            || env.contains_key("ANTHROPIC_FOUNDRY_API_KEY")
             || !foundry_base_url.is_empty()
             || anthropic_base_url.contains(".services.ai.azure.com/anthropic")
         {

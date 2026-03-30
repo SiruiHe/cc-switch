@@ -13,7 +13,7 @@ describe("Provider config utils", () => {
       {
         env: {
           CLAUDE_CODE_USE_FOUNDRY: "1",
-          ANTHROPIC_FOUNDRY_AUTH_TOKEN: "",
+          ANTHROPIC_FOUNDRY_API_KEY: "",
           ANTHROPIC_FOUNDRY_RESOURCE: "demo-foundry",
         },
       },

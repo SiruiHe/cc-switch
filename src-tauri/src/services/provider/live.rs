@@ -56,8 +56,9 @@ pub(crate) fn sanitize_claude_settings_for_live(settings: &Value) -> Value {
                     .get("ANTHROPIC_AUTH_TOKEN")
                     .and_then(|v| v.as_str())
                     .filter(|value| !value.trim().is_empty())
+                    .map(|value| value.to_string())
                 {
-                    env.entry("ANTHROPIC_FOUNDRY_AUTH_TOKEN".to_string())
+                    env.entry("ANTHROPIC_FOUNDRY_API_KEY".to_string())
                         .or_insert_with(|| json!(token));
                 }
 
@@ -65,10 +66,8 @@ pub(crate) fn sanitize_claude_settings_for_live(settings: &Value) -> Value {
                     .get("ANTHROPIC_BASE_URL")
                     .and_then(|v| v.as_str())
                     .filter(|value| !value.trim().is_empty())
+                    .map(|value| value.to_string())
                 {
-                    env.entry("ANTHROPIC_FOUNDRY_BASE_URL".to_string())
-                        .or_insert_with(|| json!(base_url));
-
                     if !env.contains_key("ANTHROPIC_FOUNDRY_RESOURCE") {
                         if let Some(resource) = base_url
                             .strip_prefix("https://")
@@ -76,8 +75,15 @@ pub(crate) fn sanitize_claude_settings_for_live(settings: &Value) -> Value {
                             .filter(|value| !value.is_empty())
                         {
                             env.insert("ANTHROPIC_FOUNDRY_RESOURCE".to_string(), json!(resource));
+                        } else {
+                            env.entry("ANTHROPIC_FOUNDRY_BASE_URL".to_string())
+                                .or_insert_with(|| json!(base_url));
                         }
                     }
+                }
+
+                if env.contains_key("ANTHROPIC_FOUNDRY_RESOURCE") {
+                    env.remove("ANTHROPIC_FOUNDRY_BASE_URL");
                 }
             }
 

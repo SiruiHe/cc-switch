@@ -186,7 +186,7 @@ export type ClaudeApiFormat = "anthropic" | "openai_chat" | "openai_responses";
 export type ClaudeApiKeyField =
   | "ANTHROPIC_AUTH_TOKEN"
   | "ANTHROPIC_API_KEY"
-  | "ANTHROPIC_FOUNDRY_AUTH_TOKEN"
+  | "ANTHROPIC_FOUNDRY_API_KEY"
   | "AWS_BEARER_TOKEN_BEDROCK";
 
 // 主页面显示的应用配置

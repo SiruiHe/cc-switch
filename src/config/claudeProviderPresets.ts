@@ -37,7 +37,7 @@ export interface ProviderPreset {
   apiKeyField?:
     | "ANTHROPIC_AUTH_TOKEN"
     | "ANTHROPIC_API_KEY"
-    | "ANTHROPIC_FOUNDRY_AUTH_TOKEN"
+    | "ANTHROPIC_FOUNDRY_API_KEY"
     | "AWS_BEARER_TOKEN_BEDROCK";
   // 新增：模板变量定义，用于动态替换配置中的值
   templateValues?: Record<string, TemplateValueConfig>; // editorValue 存储编辑器中的实时输入值
@@ -819,10 +819,8 @@ export const providerPresets: ProviderPreset[] = [
     websiteUrl: "https://learn.microsoft.com/en-us/azure/ai-foundry/",
     settingsConfig: {
       env: {
-        ANTHROPIC_FOUNDRY_AUTH_TOKEN: "",
+        ANTHROPIC_FOUNDRY_API_KEY: "",
         ANTHROPIC_FOUNDRY_RESOURCE: "${FOUNDRY_RESOURCE}",
-        ANTHROPIC_FOUNDRY_BASE_URL:
-          "https://${FOUNDRY_RESOURCE}.services.ai.azure.com/anthropic",
         ANTHROPIC_MODEL: "claude-opus-4-6",
         ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-haiku-4-5",
         ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-sonnet-4-6",
@@ -831,7 +829,7 @@ export const providerPresets: ProviderPreset[] = [
       },
     },
     category: "cloud_provider",
-    apiKeyField: "ANTHROPIC_FOUNDRY_AUTH_TOKEN",
+    apiKeyField: "ANTHROPIC_FOUNDRY_API_KEY",
     templateValues: {
       FOUNDRY_RESOURCE: {
         label: "Foundry Resource",
